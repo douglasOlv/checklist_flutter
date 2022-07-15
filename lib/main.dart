@@ -17,15 +17,16 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final _toDoController = TextEditingController();
   List _toDoList = [];
-
+  Map<String, dynamic> _lastRemoved = Map();
+  int _lastRemovedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _readData().then((data) {
-     setState(() {
-       _toDoList = json.decode(data);
-     });
+      setState(() {
+        _toDoList = json.decode(data);
+      });
     });
   }
 
@@ -58,6 +59,55 @@ class _HomeState extends State<Home> {
       _toDoList.add(newToDO);
     });
     _saveData();
+  }
+
+  Widget _buildItem(context, index) {
+    return Dismissible(
+      key: UniqueKey(),
+      background: Container(
+          color: Colors.red,
+          child: const Align(
+            alignment: Alignment(-0.9, 0),
+            child: Icon(Icons.delete, color: Colors.white),
+          )),
+      direction: DismissDirection.startToEnd,
+      child: CheckboxListTile(
+        title: Text(_toDoList[index]["title"]),
+        value: _toDoList[index]["ok"],
+        secondary: CircleAvatar(
+          child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
+        ),
+        onChanged: (check) {
+          setState(() {
+            _toDoList[index]["ok"] = check;
+            _saveData();
+          });
+        },
+      ),
+      onDismissed: (direction) {
+        setState(() {
+          _lastRemovedIndex = index;
+          _lastRemoved = Map.from(_toDoList[index]);
+          _toDoList.removeAt(index);
+          _saveData();
+        });
+
+        final snack = SnackBar(
+          content: Text("Tarefa \"${_lastRemoved["title"]}\" removida!"),
+          action: SnackBarAction(
+            label: "Desfazer",
+            onPressed: () {
+              setState(() {
+                _toDoList.insert(_lastRemovedIndex, _lastRemoved);
+                _saveData();
+              });
+            },
+          ),
+          duration: Duration(seconds: 2),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snack);
+      },
+    );
   }
 
   @override
@@ -93,21 +143,7 @@ class _HomeState extends State<Home> {
               child: ListView.builder(
             padding: EdgeInsets.only(top: 10),
             itemCount: _toDoList.length,
-            itemBuilder: (ctx, i) {
-              return CheckboxListTile(
-                title: Text(_toDoList[i]["title"]),
-                value: _toDoList[i]["ok"],
-                secondary: CircleAvatar(
-                  child: Icon(_toDoList[i]["ok"] ? Icons.check : Icons.error),
-                ),
-                onChanged: (check){
-                  setState(() {
-                    _toDoList[i]["ok"] = check;
-                    _saveData();
-                  });
-                },
-              );
-            },
+            itemBuilder: _buildItem,
           ))
         ],
       ),
