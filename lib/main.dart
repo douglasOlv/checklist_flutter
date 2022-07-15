@@ -15,6 +15,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final _toDoController = TextEditingController();
   List _toDoList = [];
 
   Future<File> _getFile() async {
@@ -37,6 +38,16 @@ class _HomeState extends State<Home> {
     }
   }
 
+  void _addToDo() {
+    Map<String, dynamic> newToDO = new Map();
+    newToDO["title"] = _toDoController.text;
+    _toDoController.text = "";
+    newToDO["ok"] = false;
+    setState(() {
+      _toDoList.add(newToDO);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,15 +67,35 @@ class _HomeState extends State<Home> {
                   decoration: InputDecoration(
                       labelText: "Nova Tarefa",
                       labelStyle: TextStyle(color: Colors.blueAccent)),
+                  controller: _toDoController,
                 )),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _addToDo,
                   style: ElevatedButton.styleFrom(primary: Colors.blueAccent),
                   child: Text("Add"),
                 )
               ],
             ),
-          )
+          ),
+          Expanded(
+              child: ListView.builder(
+            padding: EdgeInsets.only(top: 10),
+            itemCount: _toDoList.length,
+            itemBuilder: (ctx, i) {
+              return CheckboxListTile(
+                title: Text(_toDoList[i]["title"]),
+                value: _toDoList[i]["ok"],
+                secondary: CircleAvatar(
+                  child: Icon(_toDoList[i]["ok"] ? Icons.check : Icons.error),
+                ),
+                onChanged: (check){
+                  setState(() {
+                    _toDoList[i]["ok"] = check;
+                  });
+                },
+              );
+            },
+          ))
         ],
       ),
     );
